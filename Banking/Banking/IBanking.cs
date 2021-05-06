@@ -1,4 +1,6 @@
-﻿namespace Banking
+﻿using System.Collections.Generic;
+
+namespace Banking
 {
     interface IBanking
     {
@@ -45,8 +47,5 @@
         /// <param name="id">Id to search</param>
         /// <returns>List of customer filtered</returns>
         Customer[] SearchCustomers(long? id = null, string name = null);
-
-
-
     }
 }

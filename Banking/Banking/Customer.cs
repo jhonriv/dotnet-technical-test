@@ -14,10 +14,14 @@ namespace Banking
 {
     public class Customer : IBanking
     {
-        List<customerModel> Model = new List<customerModel>();
+        public string Name;
+        public long? Id;
+        public List<CustomerModel> Model = new List<CustomerModel>();
+        List<CustomerModel> Persons = new List<CustomerModel>();
         List<transfersModel> Trans = new List<transfersModel>();
-        customerModel giver = new customerModel();
-        customerModel beneficiary = new customerModel();
+        CustomerModel giver = new CustomerModel();
+        CustomerModel beneficiary = new CustomerModel();
+        
 
         public void Initialise(string path)
         {
@@ -29,7 +33,7 @@ namespace Banking
                     DataTable data = result.Tables[0];
                     for (int i = 1; i < data.Rows.Count; i++)
                     {
-                        customerModel c = new customerModel()
+                        CustomerModel c = new CustomerModel()
                         {
                             Id = Convert.ToInt32(data.Rows[i][0]),
                             First_name = data.Rows[i][1].ToString(),
@@ -56,73 +60,159 @@ namespace Banking
         public double CalculateFees(long giverId, long beneficiaryId, double amount)
         {
             double fees = 0;
-            SearchCustomer(giverId, beneficiaryId);
+            giver = SearchCustomer(giverId)[0];
+            beneficiary = SearchCustomer(beneficiaryId)[0];
 
             if ((giver.Type == "internal") && (beneficiary.Type == "internal"))
             {
-                if (amount <= 100)
-                    fees = amount;
+                if (amount < 100)
+                    fees = 0;
                 else
-                    fees = amount + 5;
+                    fees = 5;
             }
-            else if ((giver.Type == "internal") && (beneficiary.Type == "externo"))
-                fees = amount + 10;
+            else if ((giver.Type == "internal") && (beneficiary.Type == "external"))
+                fees = 10;
 
             return fees;
         }
 
         public long CountCustomers()
         {
-            throw new NotImplementedException();
+            return Model.Count;
         }
-
-        
-
-        public Customer[] SearchCustomers(long? id = default(long?), string name = null)
-        {
-            throw new NotImplementedException();
-        }
-
+                
         public void Transfer(long giverId, long beneficiaryId, double amount)
         {
-            SearchCustomer(giverId, beneficiaryId);
-
-            if (giver.Type == "interno")
+            try
             {
-                double monto_fees = CalculateFees(giverId, beneficiaryId, amount);
-
-                if (monto_fees < giver.Balance)
+                Thread.Sleep(4000);
+                Console.Clear();
+                Console.WriteLine();
+                Console.WriteLine("----------------------------------------------------------------------------");
+                Console.WriteLine("|                   Resultados de la Transacción:                          |");
+                Console.WriteLine("----------------------------------------------------------------------------");
+                if (amount > 0)
                 {
-                    giver.Balance -= monto_fees;
-                    beneficiary.Balance += amount;
-                    transfersModel t = new transfersModel()
+                    giver = SearchCustomer(giverId).Count > 0 ? SearchCustomer(giverId)[0] : null;
+                    beneficiary = SearchCustomer(beneficiaryId).Count > 0 ? SearchCustomer(beneficiaryId)[0] : null;
+                    if (giver.Type == "internal")
                     {
-                        Id = Trans[Trans.Count].Id++,
-                        GiverId = giverId,
-                        BeneficiaryId = beneficiaryId,
-                        GiverType = giver.Type,
-                        BeneficiaryType = beneficiary.Type,
-                        Amount = amount,
-                        Fees = monto_fees - amount
-                    };
+                        double monto_fees = CalculateFees(giverId, beneficiaryId, amount);
+                        long? id;
+
+                        if ((monto_fees + amount) < giver.Balance)
+                        {
+                            double saldo = giver.Balance;
+                            giver.Balance -= (monto_fees + amount);
+                            beneficiary.Balance += amount;
+                            if (Trans.Count == 0)
+                                id = 1;
+                            else
+                                id = Trans.Count + 1;
+                            transfersModel t = new transfersModel()
+                            {
+                                Id = id,
+                                GiverId = giverId,
+                                BeneficiaryId = beneficiaryId,
+                                GiverType = giver.Type,
+                                BeneficiaryType = beneficiary.Type,
+                                Amount = amount,
+                                Fees = monto_fees
+                            };
+                            Trans.Add(t);
+                            Console.WriteLine("|    La Transferencia fue realizada correctamente...                       |");
+                            Console.WriteLine("|" + em(75, "|", 'D'));
+                            Console.WriteLine("|    Depositante: " + em(27, giver.First_name + " " + giver.Last_name, 'I')
+                            + em(29, " Saldo: " + String.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:C2}", saldo), 'D') + " |");
+                            Console.WriteLine("|" + em(75, "|", 'D'));
+                            Console.WriteLine("|    Beneficiario: " + em(25, beneficiary.First_name + " " + beneficiary.Last_name, 'I')
+                                + em(30, " Transferido: +" + String.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:C2}", amount), 'D') + " |");
+                            Console.WriteLine("|" + em(75, "|", 'D'));
+                            Console.WriteLine("|    Comisión Bancaria: "
+                                + em(50, String.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:C2}", monto_fees), 'D') + " |");
+                            Console.WriteLine("|" + em(75, "----------------- |",'D'));
+                            Console.WriteLine("|" + em(75, "|", 'D'));
+                            Console.WriteLine("|    Saldo del depositante al finalizar la transacción: "
+                                + em(18, String.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:C2}", giver.Balance), 'D') + " |");
+                        }
+                        else
+                            Console.WriteLine("| El cliente no posee fondos suficientes para realizar la transferencia    |");
+                    }
+                    else
+                        Console.WriteLine("|    El cliente no puede realizar la transferencia por ser cliente externo.|");
                 }
                 else
-                    Console.WriteLine("El cliente no posee fondos suficientes para realizar la transferencia");
+                    Console.WriteLine("|    No se puede realizar operaciones con monto menor o igual que cero.    |");
+
+                Console.WriteLine("----------------------------------------------------------------------------");
+                Console.WriteLine("Presione cualquier tecla para volver atras");
             }
-            else
-                Console.WriteLine("El cliente no puede realizar la transferencia por ser cliente externo");
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error al realizar transferencia: " + ex.Message + " " + ex.InnerException);
+            }
         }
 
-        private void SearchCustomer(long giverId, long beneficiaryId)
+        public List<CustomerModel> SearchCustomer(long? id = default, string name = null)
         {
+            Persons = new List<CustomerModel>();
             foreach (var item in Model)
             {
-                if (item.Id == giverId)
-                    giver = item;
-
-                if (item.Id == beneficiaryId)
-                    beneficiary = item;
+                if ((id != default(long?)) && (item.Id == id))
+                    Persons.Add(item);
+                else if (name != null)
+                    if ((item.First_name.ToLower().IndexOf(name.ToLower()) >= 0) |
+                        (item.Last_name.ToLower().IndexOf(name.ToLower()) >= 0))
+                        Persons.Add(item);
             }
+            return Persons;
+        }
+
+        public Customer[] SearchCustomers(long? id = null, string name = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string em(int large, string var, char ori)
+        {
+            if (var.Length > large)
+            {
+                var = var.Substring(0, large - 2);
+                var += "  ";
+            }
+            else
+            {
+                int space = large - var.Length;
+                int centrar; bool plus = false;
+                if (space % 2 != 0)
+                    plus = true;
+
+                centrar = space / 2;
+                string sp = "";
+
+                if (ori == 'C')
+                {
+                    for (int i = 0; i < centrar; i++)
+                    {
+                        sp += " ";
+                    }
+                    var = sp + var + sp + (plus ? " " : "");
+                }
+                else
+                {
+                    for (int i = 0; i < space; i++)
+                    {
+                        sp += " ";
+                    }
+                    if (ori == 'I')
+                        var += sp;
+                    else
+                        var = sp + var;
+                }
+            }
+
+            return var;
         }
     }
 }
+

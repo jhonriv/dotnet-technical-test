@@ -8,9 +8,9 @@ namespace Banking
 {
     class transfersModel
     {
-        public long Id { get; set; }
-        public long GiverId { get; set; }
-        public long BeneficiaryId { get; set; }
+        public long? Id { get; set; }
+        public long? GiverId { get; set; }
+        public long? BeneficiaryId { get; set; }
         public string GiverType { get; set; }
         public string BeneficiaryType { get; set; }
         public double Amount { get; set; }

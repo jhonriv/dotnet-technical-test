@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Banking
 {
-    class customerModel
+    public class CustomerModel
     {
-        public long Id { get; set; }
+        public long? Id { get; set; }
         public string First_name { get; set; }
         public string Last_name { get; set; }
         public string Company_name { get; set; }
